@@ -113,4 +113,103 @@ use Vivado 2023.2 ml edition
         endfunction
       endmodule
 
+# controller
+
+    `timescale 1ns / 1ps
+    module controller(input logic clk,reset,start, 
+                  output logic ready,output logic [31:0]idct_out[7:0]);
+                  logic[31:0]row_result[7:0];
+                  logic[31:0]col_result[7:0];
+                  logic row_done,col_done;
+                  
+                  row_transform u_row(.clk(clk),
+                                      .reset(reset),
+                                      .idct_row(row_result));
+                  column_transform u_col(.clk(clk),
+                                         .reset(reset),
+                                         .idct_row(row_result),
+                                         .idct_col(col_result));
+                  
+                  always_ff@(posedge clk or negedge reset)begin
+                    if(!reset)begin
+                    ready<=0;
+                    row_done<=0;
+                    col_done<=0;
+                    for(int i=0;i<8;i++)begin
+                        idct_out[i]<=32'd0;
+                    end
+                    end
+                    else begin
+                        if(start && !row_done)begin
+                            row_done<=1;
+                        end
+                        else if(row_done && !col_done) begin 
+                            col_done<=1;
+                        end
+                        else if(col_done) begin
+                            idct_out<=col_result;
+                        end
+                    end
+                  end
+    endmodule
+    
+# output scaling
+
+    `timescale 1ns / 1ps
+    module output_scaling(input logic[31:0]idct_out[7:0],
+                      output logic[31:0]pixel_values[7:0]);
+         always_ff@(idct_out)begin
+            for(int i=0;i<8;i++)begin
+                pixel_values[i]=(idct_out[i]>2147483648)?2147483648:(idct_out[i]<0)?0:idct_out[i];
+            end
+         end
+    endmodule
+
+# testbench
+
+    `timescale 1ns / 1ps
+    module testbench;
+    reg clk;
+    reg reset;
+    reg start;
+    wire [31:0]idct_out[7:0];
+    reg [31:0]pixel_values[7:0];
+    wire ready;
+    controller uut(.clk(clk),
+             .reset(reset),
+             .start(start),
+             .ready(ready),
+             .idct_out(idct_out));
+    output_scaling uut1(.idct_out(idct_out),
+                    .pixel_values(pixel_values));
+               
+               initial begin
+               clk=0;
+               reset=0;
+               start=0;
+               #1;
+               reset=1;
+               #20;
+               start=1;
+               #200;
+               $display("IDCT output:%0p",idct_out);
+               $finish();
+               end
+               always #5 clk=~clk;
+    endmodule
+/*so each address having 32 bit value now divide 32 by 4 so you got 8 part of one address 
+which is more like matrix and i will show you like 
+mux ={[0,0,0,0,0,1,c,2],
+      [0,0,0,0,0,1,9,0],
+      [0,0,0,0,0,1,5,e],
+      [0,0,0,0,0,1,2,c],
+      [0,0,0,0,0,0,f,a],
+      [0,0,0,0,0,0,c,8],
+      [0,0,0,0,0,0,9,6],
+      [0,0,0,0,0,0,6,4]}  this is input mux or pixel now IDCT
+
+MUX ={[4,3,8,D,3,1,C,2],
+      [8,0,0,0,0,0,0,0],etc....} */
+    
+
 
