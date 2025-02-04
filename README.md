@@ -2,8 +2,8 @@
 use Vivado 2023.2 ml edition 
 
 # row_transform
-`timescale 1ns / 1ps
-module row_transform(input logic clk,reset, 
+    `timescale 1ns / 1ps
+    module row_transform(input logic clk,reset, 
                     output logic [31:0]idct_row[7:0]
     );
     logic[31:0]dct_coeff[7:0];
@@ -68,8 +68,8 @@ module row_transform(input logic clk,reset,
 
 # col_transform
 
-`timescale 1ns / 1ps
-module column_transform(input logic clk,reset,input logic [31:0]idct_row[7:0],
+    `timescale 1ns / 1ps
+    module column_transform(input logic clk,reset,input logic [31:0]idct_row[7:0],
                         output logic [31:0]idct_col[7:0]);
                         logic[31:0]mul[7:0];
                         always_ff@(posedge clk or negedge reset)begin
@@ -111,6 +111,6 @@ module column_transform(input logic clk,reset,input logic [31:0]idct_row[7:0],
             7: cos_val = 32'h5d4130c1;
         endcase 
         endfunction
-endmodule
+      endmodule
 
 
